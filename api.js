@@ -1,41 +1,40 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Get the pathname from the URL
-    const path = window.location.pathname;
-    // Get query parameters
-    const searchParams = new URLSearchParams(window.location.search);
+// Function to handle API requests
+function handleApiRequest() {
+    // Get the hash (everything after # in URL)
+    let hash = window.location.hash;
     
-    // Function to return JSON response
-    const sendJsonResponse = (data) => {
-        // Clear document content
-        document.querySelector('body').innerHTML = '';
-        document.querySelector('html').innerHTML = '';
-        
-        // Set proper content type for JSON
-        document.open('text/plain');
-        document.write(JSON.stringify(data));
-        document.close();
-    };
-
-    // Extract the filename from the URL path
+    // If there's no hash, just show the welcome page
+    if (!hash || hash === '#') {
+        return;
+    }
+    
+    // Remove the # prefix
+    hash = hash.substring(1);
+    
+    // Split into path and query
+    const queryIndex = hash.indexOf('?');
+    let path = hash;
+    let queryString = '';
+    
+    if (queryIndex !== -1) {
+        path = hash.substring(0, queryIndex);
+        queryString = hash.substring(queryIndex);
+    }
+    
+    // Get the filename from path
     const pathParts = path.split('/').filter(part => part !== '');
     
-    // For the root path, show welcome message
-    if (pathParts.length === 0 || 
-        (pathParts.length === 1 && (pathParts[0] === 'index.html' || pathParts[0] === ''))) {
-        document.querySelector('#response').textContent = 'REST API is running. Access data using /<filename> or /<reponame>/<filename>';
+    if (pathParts.length === 0) {
         return;
     }
     
-    // Get the last part of the path as the filename
     const filename = pathParts[pathParts.length - 1];
+    console.log('Requesting file:', filename);
     
-    // Skip if this is just the index page
-    if (filename === 'index.html') {
-        document.querySelector('#response').textContent = 'REST API is running. Access data using /<filename> or /<reponame>/<filename>';
-        return;
-    }
+    // Parse query parameters
+    const searchParams = new URLSearchParams(queryString);
     
-    // Fetch the JSON data from the data directory
+    // Fetch the JSON data
     fetch(`data/${filename}.json`)
         .then(response => {
             if (!response.ok) {
@@ -57,16 +56,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // Return the JSON response
-            sendJsonResponse(filteredData);
+            // Display the JSON response
+            const responseElement = document.getElementById('response');
+            responseElement.innerHTML = `
+                <h2>Response for ${path}${queryString}</h2>
+                <pre>${JSON.stringify(filteredData, null, 2)}</pre>
+            `;
         })
         .catch(error => {
             console.error('Error fetching data:', error);
-            sendJsonResponse({ 
-                error: 'File not found or invalid JSON',
-                path: path,
-                filename: filename,
-                requestedFile: `data/${filename}.json` 
-            });
+            const responseElement = document.getElementById('response');
+            responseElement.innerHTML = `
+                <h2>Error</h2>
+                <pre>${JSON.stringify({ 
+                    error: 'File not found or invalid JSON',
+                    path: path,
+                    filename: filename,
+                    requestedFile: `data/${filename}.json` 
+                }, null, 2)}</pre>
+            `;
         });
-}); 
+}
+
+// Listen for hash changes
+window.addEventListener('hashchange', handleApiRequest);
+
+// Handle initial load
+document.addEventListener('DOMContentLoaded', handleApiRequest); 
