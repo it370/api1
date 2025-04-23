@@ -4,10 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get query parameters
     const searchParams = new URLSearchParams(window.location.search);
     
-    // Parse the path to extract the filename
-    // Expected format: /reponame/filename
-    const pathParts = path.split('/').filter(part => part !== '');
-    
     // Function to return JSON response
     const sendJsonResponse = (data) => {
         // Clear document content
@@ -19,10 +15,20 @@ document.addEventListener('DOMContentLoaded', () => {
         document.write(JSON.stringify(data));
         document.close();
     };
+
+    // Extract the filename from the URL path
+    const pathParts = path.split('/').filter(part => part !== '');
     
-    // If we have at least two parts in the path (reponame and filename)
-    if (pathParts.length >= 2) {
+    // Get the last part of the path as the filename
+    // This handles both /reponame/filename and /filename patterns
+    if (pathParts.length > 0) {
         const filename = pathParts[pathParts.length - 1];
+        
+        // For the root path (just index.html), show a welcome message
+        if (filename === 'index.html' || filename === '') {
+            document.querySelector('#response').textContent = 'REST API is running. Access data using /<filename>';
+            return;
+        }
         
         // Fetch the JSON data from the data directory
         fetch(`data/${filename}.json`)
@@ -54,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sendJsonResponse({ error: 'File not found or invalid JSON' });
             });
     } else {
-        // Invalid path format
-        sendJsonResponse({ error: 'Invalid path format. Use /<reponame>/<filename>' });
+        // No filename in the path
+        document.querySelector('#response').textContent = 'REST API is running. Access data using /<filename>';
     }
 }); 
